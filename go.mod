@@ -1,4 +1,4 @@
-module github.com/gpiechnik2/xk6-smtp
+module github.com/mr-grant/xk6-smtp
 
 go 1.19
 
