@@ -1,7 +1,9 @@
 package smtp
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/smtp"
 
 	"go.k6.io/k6/js/modules"
