@@ -21,7 +21,7 @@ func (*SMTP) SendMail(host string, port string, sender string, senderPassword st
 	smtpPort := port
 	username := sender
 	password := senderPassword
-	from := recipient
+	from := sender
 	to := []string{recipient}
 
 	// 1. Connection (plain, without TLS)
