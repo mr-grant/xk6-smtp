@@ -16,7 +16,7 @@ func init() {
 type SMTP struct{}
 
 func (*SMTP) SendMail(host string, port string, sender string, senderPassword string, recipient string, title string, message string) {
-	// 📋 Конфигурация
+	// Configuration
 	smtpHost := host
 	smtpPort := port
 	username := sender
@@ -24,59 +24,59 @@ func (*SMTP) SendMail(host string, port string, sender string, senderPassword st
 	from := recipient
 	to := []string{recipient}
 
-	// 1️⃣ Подключение (обычное, без TLS)
+	// 1. Connection (plain, without TLS)
 	conn, err := net.Dial("tcp", smtpHost+":"+smtpPort)
 	if err != nil {
-		fmt.Printf("❌ Ошибка подключения: %v\n", err)
+		fmt.Printf("Connection error: %v\n", err)
 		return
 	}
 	defer conn.Close()
 
-	// 2️⃣ Создание SMTP клиента
+	// 2. Create SMTP client
 	client, err := smtp.NewClient(conn, smtpHost)
 	if err != nil {
-		fmt.Printf("❌ Ошибка создания клиента: %v\n", err)
+		fmt.Printf("Client creation error: %v\n", err)
 		return
 	}
 	defer client.Close()
 
-	// 3️⃣ Апгрейд до TLS через STARTTLS
+	// 3. Upgrade to TLS via STARTTLS
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true, // ⚠️ Только для тестов!
+		InsecureSkipVerify: true, // For testing only!
 		ServerName:         smtpHost,
 	}
 	if err = client.StartTLS(tlsConfig); err != nil {
-		fmt.Printf("❌ Ошибка STARTTLS: %v\n", err)
+		fmt.Printf("STARTTLS error: %v\n", err)
 		return
 	}
 
-	// 4️⃣ Аутентификация
+	// 4. Authentication
 	auth := smtp.PlainAuth("", username, password, smtpHost)
 	if err = client.Auth(auth); err != nil {
-		fmt.Printf("❌ Ошибка аутентификации: %v\n", err)
+		fmt.Printf("Authentication error: %v\n", err)
 		return
 	}
 
-	// 5️⃣ Отправка письма
+	// 5. Send email
 	if err = client.Mail(from); err != nil {
-		fmt.Printf("❌ Ошибка Mail: %v\n", err)
+		fmt.Printf("Mail error: %v\n", err)
 		return
 	}
 
 	for _, rcpt := range to {
 		if err = client.Rcpt(rcpt); err != nil {
-			fmt.Printf("❌ Ошибка Rcpt: %v\n", err)
+			fmt.Printf("Rcpt error: %v\n", err)
 			return
 		}
 	}
 
 	writer, err := client.Data()
 	if err != nil {
-		fmt.Printf("❌ Ошибка Data: %v\n", err)
+		fmt.Printf("Data error: %v\n", err)
 		return
 	}
 
-	// Формирование письма
+	// Build email
 	emailMsg := "To: " + to[0] + "\r\n" +
 		"From: " + from + "\r\n" +
 		"Subject: " + title + "\r\n" +
@@ -86,13 +86,13 @@ func (*SMTP) SendMail(host string, port string, sender string, senderPassword st
 
 	_, err = writer.Write([]byte(emailMsg))
 	if err != nil {
-		fmt.Printf("❌ Ошибка записи: %v\n", err)
+		fmt.Printf("Write error: %v\n", err)
 		return
 	}
 
 	err = writer.Close()
 	if err != nil {
-		fmt.Printf("❌ Ошибка закрытия: %v\n", err)
+		fmt.Printf("Close error: %v\n", err)
 		return
 	}
 }
