@@ -15,12 +15,12 @@ func init() {
 
 type SMTP struct{}
 
-func (*SMTP) SendMail(host string, port string, sender string, password string, recipient string, title string, message string) {
+func (*SMTP) SendMail(host string, port string, sender string, senderPassword string, recipient string, title string, message string) {
 	// 📋 Конфигурация
 	smtpHost := host
 	smtpPort := port
 	username := sender
-	password := password
+	password := senderPassword
 	from := recipient
 	to := []string{recipient}
 
@@ -63,8 +63,8 @@ func (*SMTP) SendMail(host string, port string, sender string, password string, 
 		return
 	}
 
-	for _, recipient := range to {
-		if err = client.Rcpt(recipient); err != nil {
+	for _, rcpt := range to {
+		if err = client.Rcpt(rcpt); err != nil {
 			fmt.Printf("❌ Ошибка Rcpt: %v\n", err)
 			return
 		}
@@ -77,14 +77,14 @@ func (*SMTP) SendMail(host string, port string, sender string, password string, 
 	}
 
 	// Формирование письма
-	message := []byte("To: " + to[0] + "\r\n" +
+	emailMsg := "To: " + to[0] + "\r\n" +
 		"From: " + from + "\r\n" +
 		"Subject: " + title + "\r\n" +
 		"Content-Type: text/plain; charset=UTF-8\r\n" +
 		"\r\n" + message +
-		"\r\n")
+		"\r\n"
 
-	_, err = writer.Write(message)
+	_, err = writer.Write([]byte(emailMsg))
 	if err != nil {
 		fmt.Printf("❌ Ошибка записи: %v\n", err)
 		return
