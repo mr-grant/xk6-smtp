@@ -13,39 +13,84 @@ func init() {
 
 type SMTP struct{}
 
-type options struct {
-	Subject string   `js:"subject"`
-	Message string   `js:"message"`
-	UDW     []string `js:"udw"`
-}
+func (*SMTP) SendMail(host string, port string, sender string, password string, recipient string, title string, message string) {
+	// 📋 Конфигурация
+	smtpHost := host
+	smtpPort := port
+	username := sender
+	password := password
+	from := recipient
+	to := []string{recipient}
 
-func check(e error) {
-	if e != nil {
-		fmt.Println(e)
+	// 1️⃣ Подключение (обычное, без TLS)
+	conn, err := net.Dial("tcp", smtpHost+":"+smtpPort)
+	if err != nil {
+		fmt.Printf("❌ Ошибка подключения: %v\n", err)
+		return
 	}
-}
+	defer conn.Close()
 
-func plainAuth(host string, password string, sender string) smtp.Auth {
-	return smtp.PlainAuth("", sender, password, host)
-}
+	// 2️⃣ Создание SMTP клиента
+	client, err := smtp.NewClient(conn, smtpHost)
+	if err != nil {
+		fmt.Printf("❌ Ошибка создания клиента: %v\n", err)
+		return
+	}
+	defer client.Close()
 
-func (*SMTP) SendMail(host string, port string, sender string, password string, recipient string, options options) {
-	emailMessage := "From: " + sender + "\r\n" + "To: " + recipient + "\r\n"
-
-	if options.Subject != "" {
-		emailMessage += "Subject: " + options.Subject + "\r\n\r\n"
+	// 3️⃣ Апгрейд до TLS через STARTTLS
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true, // ⚠️ Только для тестов!
+		ServerName:         smtpHost,
+	}
+	if err = client.StartTLS(tlsConfig); err != nil {
+		fmt.Printf("❌ Ошибка STARTTLS: %v\n", err)
+		return
 	}
 
-	if options.Message != "" {
-		emailMessage += options.Message
+	// 4️⃣ Аутентификация
+	auth := smtp.PlainAuth("", username, password, smtpHost)
+	if err = client.Auth(auth); err != nil {
+		fmt.Printf("❌ Ошибка аутентификации: %v\n", err)
+		return
 	}
 
-	if len(options.UDW) == 0 {
-		options.UDW = []string{recipient}
+	// 5️⃣ Отправка письма
+	if err = client.Mail(from); err != nil {
+		fmt.Printf("❌ Ошибка Mail: %v\n", err)
+		return
 	}
 
-	body := []byte(emailMessage)
-	auth := plainAuth(host, password, sender)
-	err := smtp.SendMail(host+":"+port, auth, sender, options.UDW, body)
-	check(err)
+	for _, recipient := range to {
+		if err = client.Rcpt(recipient); err != nil {
+			fmt.Printf("❌ Ошибка Rcpt: %v\n", err)
+			return
+		}
+	}
+
+	writer, err := client.Data()
+	if err != nil {
+		fmt.Printf("❌ Ошибка Data: %v\n", err)
+		return
+	}
+
+	// Формирование письма
+	message := []byte("To: " + to[0] + "\r\n" +
+		"From: " + from + "\r\n" +
+		"Subject: " + title + "\r\n" +
+		"Content-Type: text/plain; charset=UTF-8\r\n" +
+		"\r\n" + message +
+		"\r\n")
+
+	_, err = writer.Write(message)
+	if err != nil {
+		fmt.Printf("❌ Ошибка записи: %v\n", err)
+		return
+	}
+
+	err = writer.Close()
+	if err != nil {
+		fmt.Printf("❌ Ошибка закрытия: %v\n", err)
+		return
+	}
 }
