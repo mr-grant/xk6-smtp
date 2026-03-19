@@ -15,14 +15,14 @@ func init() {
 
 type SMTP struct{}
 
-func (*SMTP) SendMail(host string, port string, sender string, senderPassword string, recipient string, title string, message string) {
+func (*SMTP) SendMail(host string, port string, sender string, senderPassword string, recipients []string, title string, message string) {
 	// Configuration
 	smtpHost := host
 	smtpPort := port
 	username := sender
 	password := senderPassword
 	from := sender
-	to := []string{recipient}
+	to := recipients
 
 	// 1. Connection (plain, without TLS)
 	conn, err := net.Dial("tcp", smtpHost+":"+smtpPort)
@@ -77,7 +77,7 @@ func (*SMTP) SendMail(host string, port string, sender string, senderPassword st
 	}
 
 	// Build email
-	emailMsg := "To: " + to[0] + "\r\n" +
+	emailMsg := "To: " + joinStrings(to) + "\r\n" +
 		"From: " + from + "\r\n" +
 		"Subject: " + title + "\r\n" +
 		"Content-Type: text/plain; charset=UTF-8\r\n" +
@@ -95,4 +95,15 @@ func (*SMTP) SendMail(host string, port string, sender string, senderPassword st
 		fmt.Printf("Close error: %v\n", err)
 		return
 	}
+}
+
+func joinStrings(strs []string) string {
+	result := ""
+	for i, s := range strs {
+		if i > 0 {
+			result += ", "
+		}
+		result += s
+	}
+	return result
 }
